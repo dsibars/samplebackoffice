@@ -77,6 +77,22 @@ export function VisualDataEditorView() {
     }
   };
 
+  const handleAddRow = () => {
+    if (!tableData) return;
+    
+    const newRow: Record<string, any> = {};
+    tableData.headers.forEach(header => {
+      newRow[header] = '';
+    });
+    
+    setTableData({
+      ...tableData,
+      rows: [...tableData.rows, newRow]
+    });
+    setSaveStatus('New row added at the bottom.');
+    setTimeout(() => setSaveStatus(''), 3000);
+  };
+
   if (!tableData) {
     return (
       <div className="flex flex-col items-center justify-center h-64 bg-white shadow rounded-lg border-2 border-dashed border-gray-300">
@@ -108,6 +124,13 @@ export function VisualDataEditorView() {
         <div className="flex items-center space-x-4">
           {saveStatus && <span className="text-green-600 text-sm font-medium animate-pulse">{saveStatus}</span>}
           
+          <button 
+            onClick={handleAddRow}
+            className="bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded shadow-sm transition-colors text-sm flex items-center"
+          >
+            <span className="mr-1">+</span> Add New Row
+          </button>
+
           <select 
             className="border-gray-300 rounded shadow-sm py-2 px-3 focus:ring-blue-500 focus:border-blue-500 bg-blue-50 border cursor-pointer hover:bg-blue-100 transition-colors font-medium text-blue-800"
             defaultValue=""
