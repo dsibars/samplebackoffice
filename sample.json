@@ -1,0 +1,42 @@
+[
+  {
+    "id": 1,
+    "name": "Project Alpha",
+    "status": "Active",
+    "priority": "High",
+    "budget": 50000,
+    "team": "Engineering"
+  },
+  {
+    "id": 2,
+    "name": "Beta Campaign",
+    "status": "Plannings",
+    "priority": "Medium",
+    "budget": 12000,
+    "team": "Marketing"
+  },
+  {
+    "id": 3,
+    "name": "Customer Support Portal",
+    "status": "Maintenance",
+    "priority": "Low",
+    "budget": 5000,
+    "team": "Support"
+  },
+  {
+    "id": 4,
+    "name": "Inventory Sync",
+    "status": "In Progress",
+    "priority": "High",
+    "budget": 25000,
+    "team": "Logistics"
+  },
+  {
+    "id": 5,
+    "name": "Cloud Migration",
+    "status": "Stalled",
+    "priority": "Critical",
+    "budget": 100000,
+    "team": "Infrastructure"
+  }
+]

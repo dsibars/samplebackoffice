@@ -20,10 +20,11 @@ export function DataTable({ headers, rows, onDataChange }: DataTableProps) {
   };
 
   const sortedRows = useMemo(() => {
-    if (!sortKey) return rows;
+    const wrapped = rows.map((row, originalIndex) => ({ row, originalIndex }));
     
-    // We map rows to keep track of their original Index for safe updating
-    return rows.map((row, originalIndex) => ({ row, originalIndex })).sort((a, b) => {
+    if (!sortKey) return wrapped;
+    
+    return wrapped.sort((a, b) => {
       const valA = a.row[sortKey];
       const valB = b.row[sortKey];
 
