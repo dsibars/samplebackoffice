@@ -24,8 +24,12 @@ export const ConfigurationEditor: React.FC<Props> = ({ config, onSave }) => {
       onSave(parsed);
       setError(null);
       alert('Configuration saved successfully!');
-    } catch (e: any) {
-      setError(e.message || "Invalid JSON");
+    } catch (e: unknown) {
+      if (e instanceof Error) {
+        setError(e.message);
+      } else {
+        setError("Invalid JSON");
+      }
     }
   };
 

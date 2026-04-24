@@ -22,8 +22,9 @@ export function VisualDataEditorView() {
       const format = DataFileService.detectFormat(fileData.fileName);
       const parsed = DataFileService.parseRawData(fileData.content, format, fileData.filePath, fileData.fileName);
       setTableData(parsed);
-    } catch (e: any) {
-      alert('Failed to parse the file: ' + e.message);
+    } catch (e: unknown) {
+      const message = e instanceof Error ? e.message : String(e);
+      alert('Failed to parse the file: ' + message);
     } finally {
       setLoading(false);
     }
@@ -72,8 +73,9 @@ export function VisualDataEditorView() {
         setSaveStatus('Download triggered.');
         setTimeout(() => setSaveStatus(''), 3000);
       }
-    } catch (err: any) {
-      alert('Action failed: ' + err.message);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      alert('Action failed: ' + message);
     }
   };
 
