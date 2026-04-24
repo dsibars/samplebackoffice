@@ -122,6 +122,7 @@ export function DataTable({ headers, rows, onDataChange }: DataTableProps) {
                 style={{ width: columnWidths[header] || 200 }}
                 className="relative px-4 py-3 text-left font-medium text-gray-700 capitalize tracking-wider cursor-pointer hover:bg-gray-100 select-none whitespace-nowrap group"
                 onClick={() => handleSort(header)}
+                aria-sort={sortKey === header ? (sortDirection === 'asc' ? 'ascending' : 'descending') : 'none'}
               >
                 <div className="flex items-center">
                   <span className="truncate flex-1">{header}</span>
@@ -134,9 +135,11 @@ export function DataTable({ headers, rows, onDataChange }: DataTableProps) {
                 
                 {/* Resizer Handle */}
                 <div 
-                  className="absolute right-0 top-0 bottom-0 w-1 bg-transparent group-hover:bg-gray-200 hover:bg-blue-400 cursor-col-resize z-10 transition-colors"
+                  className="absolute -right-1.5 top-0 bottom-0 w-3 bg-transparent cursor-col-resize z-10 flex justify-center"
                   onMouseDown={(e) => startResizing(e, header)}
-                />
+                >
+                  <div className="w-px h-full bg-transparent group-hover:bg-gray-200 group-active:bg-blue-400 transition-colors" />
+                </div>
               </th>
             ))}
           </tr>
@@ -160,6 +163,7 @@ export function DataTable({ headers, rows, onDataChange }: DataTableProps) {
                       readOnly={isObj}
                       title={isObj ? "Complex objects are currently strictly read-only" : displayVal}
                       onChange={(e) => handleCellChange(originalIndex, header, e.target.value)}
+                      aria-label={`Edit ${header} for row ${originalIndex + 1}`}
                     />
                   </td>
                 );
