@@ -4,6 +4,8 @@ import { fileURLToPath } from 'node:url';
 import squirrelStartup from 'electron-squirrel-startup';
 import * as fs from 'node:fs';
 
+const authorizedPaths = new Set<string>();
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
@@ -41,11 +43,16 @@ app.whenReady().then(() => {
       return null;
     }
     const filePath = filePaths[0];
+    authorizedPaths.add(filePath);
     const content = fs.readFileSync(filePath, 'utf-8');
     return { filePath, content, fileName: basename(filePath) };
   });
 
   ipcMain.handle('save-file', async (_event, filePath: string, content: string) => {
+    if (!authorizedPaths.has(filePath)) {
+      console.error(`Security Warning: Unauthorized attempt to write to ${filePath}`);
+      throw new Error('Unauthorized file access: The specified path has not been opened for editing.');
+    }
     fs.writeFileSync(filePath, content, 'utf-8');
     return true;
   });
