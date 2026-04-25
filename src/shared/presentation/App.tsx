@@ -2,9 +2,10 @@ import { useState } from 'react';
 import { HomeView } from '../../home/presentation/HomeView';
 import { VisualDataEditorView } from '../../visualDataEditor/presentation/VisualDataEditorView';
 import { ClientVisualBuilderView } from '../../clientVisualBuilder/presentation/ClientVisualBuilderView';
+import { AWSView } from '../../aws/presentation/AWSView';
 
 export function App() {
-  const [currentView, setCurrentView] = useState<'home' | 'visualDataEditor' | 'clientVisualBuilder'>('home');
+  const [currentView, setCurrentView] = useState<'home' | 'visualDataEditor' | 'clientVisualBuilder' | 'aws'>('home');
 
   return (
     <div className="min-h-screen flex flex-col bg-gray-50">
@@ -29,12 +30,19 @@ export function App() {
           >
             Visual Builder
           </button>
+          <button
+            onClick={() => setCurrentView('aws')}
+            className={`font-medium ${currentView === 'aws' ? 'text-white border-b-2 border-white' : 'text-blue-200 hover:text-white'}`}
+          >
+            AWS
+          </button>
         </nav>
       </header>
       <main className="flex-1 w-full p-6 xl:p-8">
         {currentView === 'home' && <HomeView />}
         {currentView === 'visualDataEditor' && <VisualDataEditorView />}
         {currentView === 'clientVisualBuilder' && <ClientVisualBuilderView />}
+        {currentView === 'aws' && <AWSView />}
       </main>
     </div>
   );
