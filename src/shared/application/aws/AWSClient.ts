@@ -3,6 +3,7 @@ import { ParameterMetadata, Parameter } from '@aws-sdk/client-ssm';
 export class AWSClient {
   private static instance: AWSClient;
   private region: string = 'eu-west-1';
+  private profile: string = 'default';
 
   private constructor() {}
 
@@ -21,17 +22,25 @@ export class AWSClient {
     return this.region;
   }
 
+  public setProfile(profile: string): void {
+    this.profile = profile;
+  }
+
+  public getProfile(): string {
+    return this.profile;
+  }
+
   public async listParameters(): Promise<ParameterMetadata[]> {
     if (!window.electronAPI) {
       throw new Error('Electron API not available');
     }
-    return window.electronAPI.awsSSMListParameters(this.region);
+    return window.electronAPI.awsSSMListParameters(this.region, this.profile);
   }
 
   public async getParameter(name: string): Promise<Parameter | undefined> {
     if (!window.electronAPI) {
       throw new Error('Electron API not available');
     }
-    return window.electronAPI.awsSSMGetParameter(this.region, name);
+    return window.electronAPI.awsSSMGetParameter(this.region, this.profile, name);
   }
 }

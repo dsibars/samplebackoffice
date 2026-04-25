@@ -3,6 +3,7 @@ import { AWSClient } from '../../shared/application/aws/AWSClient';
 import { ElectronAWSConfigurationReader } from '../../shared/infrastructure/aws/ElectronAWSConfigurationReader';
 import { ParameterStoreTab } from './ParameterStoreTab';
 import { CredentialSetupTab } from './CredentialSetupTab';
+import { AWSProfile } from '../../shared/domain/aws/AWSConfiguration';
 
 const REGIONS = [
   'eu-west-1', 'eu-central-1', 'us-east-1', 'us-west-2', 'ap-southeast-1'
@@ -11,6 +12,8 @@ const REGIONS = [
 export function AWSView() {
   const [activeTab, setActiveTab] = useState<'ssm' | 'setup'>('ssm');
   const [region, setRegion] = useState(AWSClient.getInstance().getRegion());
+  const [profile, setProfile] = useState(AWSClient.getInstance().getProfile());
+  const [profiles, setProfiles] = useState<AWSProfile[]>([]);
   const [hasConfig, setHasConfig] = useState<boolean | null>(null);
   const configReader = new ElectronAWSConfigurationReader();
 
@@ -21,12 +24,22 @@ export function AWSView() {
   const checkConfig = async () => {
     const exists = await configReader.hasLocalConfiguration();
     setHasConfig(exists);
+    if (exists) {
+      const config = await configReader.readConfiguration();
+      setProfiles(config.profiles);
+    }
   };
 
   const handleRegionChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const newRegion = e.target.value;
     setRegion(newRegion);
     AWSClient.getInstance().setRegion(newRegion);
+  };
+
+  const handleProfileChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const newProfile = e.target.value;
+    setProfile(newProfile);
+    AWSClient.getInstance().setProfile(newProfile);
   };
 
   return (
@@ -42,18 +55,39 @@ export function AWSView() {
           </div>
         </div>
 
-        <div className="flex items-center space-x-2">
-          <label htmlFor="region-select" className="text-sm font-medium text-gray-700">Region:</label>
-          <select
-            id="region-select"
-            value={region}
-            onChange={handleRegionChange}
-            className="block w-40 pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md border"
-          >
-            {REGIONS.map(r => (
-              <option key={r} value={r}>{r}</option>
-            ))}
-          </select>
+        <div className="flex items-center space-x-4">
+          <div className="flex items-center space-x-2">
+            <label htmlFor="profile-select" className="text-sm font-medium text-gray-700">Profile:</label>
+            <select
+              id="profile-select"
+              value={profile}
+              onChange={handleProfileChange}
+              className="block w-40 pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md border"
+              disabled={!hasConfig}
+            >
+              {profiles.length > 0 ? (
+                profiles.map(p => (
+                  <option key={p.name} value={p.name}>{p.name}</option>
+                ))
+              ) : (
+                <option value="default">default</option>
+              )}
+            </select>
+          </div>
+
+          <div className="flex items-center space-x-2">
+            <label htmlFor="region-select" className="text-sm font-medium text-gray-700">Region:</label>
+            <select
+              id="region-select"
+              value={region}
+              onChange={handleRegionChange}
+              className="block w-40 pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md border"
+            >
+              {REGIONS.map(r => (
+                <option key={r} value={r}>{r}</option>
+              ))}
+            </select>
+          </div>
         </div>
       </div>
 

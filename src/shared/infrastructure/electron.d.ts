@@ -12,8 +12,8 @@ export interface IElectronAPI {
   saveFile: (filePath: string, content: string) => Promise<boolean>;
   hasAWSConfiguration: () => Promise<boolean>;
   readAWSConfiguration: () => Promise<AWSConfiguration>;
-  awsSSMListParameters: (region: string) => Promise<ParameterMetadata[]>;
-  awsSSMGetParameter: (region: string, name: string) => Promise<Parameter | undefined>;
+  awsSSMListParameters: (region: string, profile: string) => Promise<ParameterMetadata[]>;
+  awsSSMGetParameter: (region: string, profile: string, name: string) => Promise<Parameter | undefined>;
 }
 
 declare global {

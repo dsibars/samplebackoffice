@@ -13,7 +13,7 @@ export function ParameterStoreTab() {
 
   useEffect(() => {
     fetchParameters();
-  }, [AWSClient.getInstance().getRegion()]);
+  }, [AWSClient.getInstance().getRegion(), AWSClient.getInstance().getProfile()]);
 
   const fetchParameters = async () => {
     setLoading(true);

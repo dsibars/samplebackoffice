@@ -7,6 +7,7 @@ import * as path from 'node:path';
 import * as os from 'node:os';
 import * as ini from 'ini';
 import { SSMClient, DescribeParametersCommand, GetParameterCommand } from '@aws-sdk/client-ssm';
+import { fromIni } from '@aws-sdk/credential-providers';
 
 const authorizedPaths = new Set<string>();
 
@@ -66,15 +67,21 @@ app.whenReady().then(() => {
     return fs.existsSync(awsPath);
   });
 
-  ipcMain.handle('aws-ssm-list-parameters', async (_event, region: string) => {
-    const client = new SSMClient({ region });
+  ipcMain.handle('aws-ssm-list-parameters', async (_event, region: string, profile: string) => {
+    const client = new SSMClient({
+      region,
+      credentials: fromIni({ profile })
+    });
     const command = new DescribeParametersCommand({});
     const response = await client.send(command);
     return response.Parameters || [];
   });
 
-  ipcMain.handle('aws-ssm-get-parameter', async (_event, region: string, name: string) => {
-    const client = new SSMClient({ region });
+  ipcMain.handle('aws-ssm-get-parameter', async (_event, region: string, profile: string, name: string) => {
+    const client = new SSMClient({
+      region,
+      credentials: fromIni({ profile })
+    });
     const command = new GetParameterCommand({ Name: name, WithDecryption: true });
     const response = await client.send(command);
     return response.Parameter;
