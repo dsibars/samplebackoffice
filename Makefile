@@ -1,13 +1,13 @@
 .PHONY: build test run install
 
 install:
-	npm install
+	pnpm install
 
 build:
-	npm run build
+	pnpm run build
 
 test:
-	npm run test
+	pnpm run test
 
 run:
-	npm run dev
+	pnpm run dev
