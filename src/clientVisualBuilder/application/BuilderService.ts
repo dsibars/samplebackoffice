@@ -37,4 +37,10 @@ export class BuilderService {
     }
     this.store.saveImplementations(impls);
   }
+
+  deleteImplementation(id: string): void {
+    const impls = this.store.loadImplementations();
+    const filtered = impls.filter(i => i.id !== id);
+    this.store.saveImplementations(filtered);
+  }
 }
