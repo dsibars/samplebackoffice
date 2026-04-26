@@ -33,10 +33,25 @@ export interface IAIApi {
   prompt: (profileId: string, model: string, input: string) => Promise<string>;
 }
 
+export interface IAPIManagerApi {
+  request: (options: {
+    url: string;
+    method: string;
+    headers?: Record<string, string>;
+    body?: string;
+  }) => Promise<{
+    status: number;
+    statusText: string;
+    body: string;
+    headers: Record<string, string>;
+  }>;
+}
+
 export interface IElectronAPI {
   files: IFilesAPI;
   aws: IAWSApi;
   ai: IAIApi;
+  apiManager: IAPIManagerApi;
 }
 
 declare global {

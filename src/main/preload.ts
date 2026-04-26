@@ -23,5 +23,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
     saveConfiguration: (config: any) => ipcRenderer.invoke('ai:saveConfiguration', config),
     getModels: (profileId: string) => ipcRenderer.invoke('ai:getModels', profileId),
     prompt: (profileId: string, model: string, input: string) => ipcRenderer.invoke('ai:prompt', profileId, model, input),
+  },
+  apiManager: {
+    request: (options: any) => ipcRenderer.invoke('api-manager:request', options),
   }
 });
