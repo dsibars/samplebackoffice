@@ -5,13 +5,13 @@ export class ElectronAWSConfigurationReader implements IAWSConfigurationReader {
     if (!window.electronAPI) {
       return { profiles: [] };
     }
-    return window.electronAPI.readAWSConfiguration();
+    return window.electronAPI.aws.readAWSConfiguration();
   }
 
   async hasLocalConfiguration(): Promise<boolean> {
     if (!window.electronAPI) {
       return false;
     }
-    return window.electronAPI.hasAWSConfiguration();
+    return window.electronAPI.aws.hasAWSConfiguration();
   }
 }

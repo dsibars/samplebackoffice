@@ -8,6 +8,10 @@ import * as os from 'node:os';
 import * as ini from 'ini';
 import { SSMClient, DescribeParametersCommand, GetParameterCommand, PutParameterCommand, DeleteParameterCommand, ParameterMetadata, Parameter, ParameterType } from '@aws-sdk/client-ssm';
 import { fromIni } from '@aws-sdk/credential-providers';
+import { AIConfiguration } from '../shared/domain/ai/AIProfile.js';
+import { AIService } from '../shared/application/AIService.js';
+import { GeminiProvider } from '../shared/infrastructure/ai/GeminiProvider.js';
+import { GleanProvider } from '../shared/infrastructure/ai/GleanProvider.js';
 
 const authorizedPaths = new Set<string>();
 
@@ -93,8 +97,42 @@ const createWindow = () => {
   }
 };
 
+function getAIConfigPath() {
+  return path.join(os.homedir(), '.samplebackoffice', 'ai_credentials.json');
+}
+
+function ensureAIConfigDir() {
+  const dir = path.dirname(getAIConfigPath());
+  if (!fs.existsSync(dir)) {
+    fs.mkdirSync(dir, { recursive: true });
+  }
+}
+
+function readAIConfig(): AIConfiguration {
+  const configPath = getAIConfigPath();
+  if (!fs.existsSync(configPath)) {
+    return { profiles: [] };
+  }
+  try {
+    return JSON.parse(fs.readFileSync(configPath, 'utf-8'));
+  } catch (e) {
+    console.error('Error reading AI config:', e);
+    return { profiles: [] };
+  }
+}
+
+function saveAIConfig(config: AIConfiguration) {
+  ensureAIConfigDir();
+  fs.writeFileSync(getAIConfigPath(), JSON.stringify(config, null, 2), 'utf-8');
+}
+
 app.whenReady().then(() => {
-  ipcMain.handle('open-file', async () => {
+  const aiService = new AIService(readAIConfig);
+  aiService.registerProvider('gemini', new GeminiProvider());
+  aiService.registerProvider('glean', new GleanProvider());
+
+  // Files API
+  ipcMain.handle('files:openFile', async () => {
     const { canceled, filePaths } = await dialog.showOpenDialog({
       properties: ['openFile'],
       filters: [{ name: 'Data Files', extensions: ['json', 'csv'] }]
@@ -108,7 +146,7 @@ app.whenReady().then(() => {
     return { filePath, content, fileName: basename(filePath) };
   });
 
-  ipcMain.handle('save-file', async (_event, filePath: string, content: string) => {
+  ipcMain.handle('files:saveFile', async (_event, filePath: string, content: string) => {
     if (!authorizedPaths.has(filePath)) {
       console.error(`Security Warning: Unauthorized attempt to write to ${filePath}`);
       throw new Error('Unauthorized file access: The specified path has not been opened for editing.');
@@ -117,12 +155,17 @@ app.whenReady().then(() => {
     return true;
   });
 
-  ipcMain.handle('has-aws-configuration', async () => {
+  // AWS API
+  ipcMain.handle('aws:hasAWSConfiguration', async () => {
     const awsPath = path.join(os.homedir(), '.aws', 'credentials');
     return fs.existsSync(awsPath);
   });
 
-  ipcMain.handle('aws-ssm-list-parameters', async (_event, region: string, profile: string) => {
+  ipcMain.handle('aws:readAWSConfiguration', async () => {
+    return readAWSConfiguration();
+  });
+
+  ipcMain.handle('aws:ssm:listParameters', async (_event, region: string, profile: string) => {
     if (profile === MOCK_PROFILE) {
       const mockData = getMockData();
       return mockData.map(p => ({
@@ -141,7 +184,7 @@ app.whenReady().then(() => {
     return response.Parameters || [];
   });
 
-  ipcMain.handle('aws-ssm-get-parameter', async (_event, region: string, profile: string, name: string) => {
+  ipcMain.handle('aws:ssm:getParameter', async (_event, region: string, profile: string, name: string) => {
     if (profile === MOCK_PROFILE) {
       const mockData = getMockData();
       return mockData.find(p => p.Name === name);
@@ -156,7 +199,7 @@ app.whenReady().then(() => {
     return response.Parameter;
   });
 
-  ipcMain.handle('aws-ssm-put-parameter', async (_event, region: string, profile: string, name: string, value: string, type: ParameterType) => {
+  ipcMain.handle('aws:ssm:putParameter', async (_event, region: string, profile: string, name: string, value: string, type: ParameterType) => {
     if (profile === MOCK_PROFILE) {
       const mockData = getMockData();
       const existingIndex = mockData.findIndex(p => p.Name === name);
@@ -189,7 +232,7 @@ app.whenReady().then(() => {
     return true;
   });
 
-  ipcMain.handle('aws-ssm-delete-parameter', async (_event, region: string, profile: string, name: string) => {
+  ipcMain.handle('aws:ssm:deleteParameter', async (_event, region: string, profile: string, name: string) => {
     if (profile === MOCK_PROFILE) {
       const mockData = getMockData();
       const newData = mockData.filter(p => p.Name !== name);
@@ -206,17 +249,35 @@ app.whenReady().then(() => {
     return true;
   });
 
-  ipcMain.handle('get-ssm-categorizations', async () => {
+  ipcMain.handle('aws:ssm:getCategorizations', async () => {
     return getSSMCategorizations();
   });
 
-  ipcMain.handle('save-ssm-categorization', async (_event, patterns: string[]) => {
+  ipcMain.handle('aws:ssm:saveCategorization', async (_event, patterns: string[]) => {
     const catsPath = path.join(app.getPath('userData'), 'mock-ssm-categorizations.json');
     fs.writeFileSync(catsPath, JSON.stringify(patterns, null, 2));
     return true;
   });
 
-  ipcMain.handle('read-aws-configuration', async () => {
+  // AI API
+  ipcMain.handle('ai:readConfiguration', async () => {
+    return readAIConfig();
+  });
+
+  ipcMain.handle('ai:saveConfiguration', async (_event, config: AIConfiguration) => {
+    saveAIConfig(config);
+    return true;
+  });
+
+  ipcMain.handle('ai:getModels', async (_event, profileId: string) => {
+    return aiService.getModels(profileId);
+  });
+
+  ipcMain.handle('ai:prompt', async (_event, profileId: string, model: string, input: string) => {
+    return aiService.prompt(profileId, model, input);
+  });
+
+  async function readAWSConfiguration() {
     const awsPath = path.join(os.homedir(), '.aws', 'credentials');
     const configPath = path.join(os.homedir(), '.aws', 'config');
 
@@ -259,7 +320,7 @@ app.whenReady().then(() => {
     }
 
     return { profiles };
-  });
+  }
 
   createWindow();
 

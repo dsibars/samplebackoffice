@@ -6,7 +6,7 @@ export class FileSystemRepo {
    */
   public static async pickFile(): Promise<ElectronFileResult | null> {
     if (window.electronAPI) {
-      return await window.electronAPI.openFile();
+      return await window.electronAPI.files.openFile();
     } else {
       // Basic fallback using HTML5 input could be implemented here for Web environments
       alert('File picking natively requires the Electron environment context.');
@@ -19,7 +19,7 @@ export class FileSystemRepo {
    */
   public static async overwriteFile(filePath: string, content: string): Promise<boolean> {
     if (window.electronAPI) {
-      return await window.electronAPI.saveFile(filePath, content);
+      return await window.electronAPI.files.saveFile(filePath, content);
     } else {
       alert('Overwriting files natively requires the Electron environment context.');
       return false;
