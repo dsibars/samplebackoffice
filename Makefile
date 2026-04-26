@@ -3,11 +3,11 @@
 install:
 	pnpm install
 
-build:
+build: install
 	pnpm run build
 
-test:
+test: install
 	pnpm run test
 
-run:
+run: install
 	pnpm run dev
