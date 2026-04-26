@@ -3,6 +3,11 @@ import { dirname, join, basename } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import squirrelStartup from 'electron-squirrel-startup';
 import * as fs from 'node:fs';
+import * as path from 'node:path';
+import * as os from 'node:os';
+import * as ini from 'ini';
+import { SSMClient, DescribeParametersCommand, GetParameterCommand } from '@aws-sdk/client-ssm';
+import { fromIni } from '@aws-sdk/credential-providers';
 
 const authorizedPaths = new Set<string>();
 
@@ -55,6 +60,74 @@ app.whenReady().then(() => {
     }
     fs.writeFileSync(filePath, content, 'utf-8');
     return true;
+  });
+
+  ipcMain.handle('has-aws-configuration', async () => {
+    const awsPath = path.join(os.homedir(), '.aws', 'credentials');
+    return fs.existsSync(awsPath);
+  });
+
+  ipcMain.handle('aws-ssm-list-parameters', async (_event, region: string, profile: string) => {
+    const client = new SSMClient({
+      region,
+      credentials: fromIni({ profile })
+    });
+    const command = new DescribeParametersCommand({});
+    const response = await client.send(command);
+    return response.Parameters || [];
+  });
+
+  ipcMain.handle('aws-ssm-get-parameter', async (_event, region: string, profile: string, name: string) => {
+    const client = new SSMClient({
+      region,
+      credentials: fromIni({ profile })
+    });
+    const command = new GetParameterCommand({ Name: name, WithDecryption: true });
+    const response = await client.send(command);
+    return response.Parameter;
+  });
+
+  ipcMain.handle('read-aws-configuration', async () => {
+    const awsPath = path.join(os.homedir(), '.aws', 'credentials');
+    const configPath = path.join(os.homedir(), '.aws', 'config');
+
+    let profiles: any[] = [];
+
+    if (fs.existsSync(awsPath)) {
+      const credentialsContent = fs.readFileSync(awsPath, 'utf-8');
+      const credentials = ini.parse(credentialsContent);
+
+      for (const profileName in credentials) {
+        profiles.push({
+          name: profileName,
+          accessKeyId: credentials[profileName].aws_access_key_id,
+        });
+      }
+    }
+
+    if (fs.existsSync(configPath)) {
+      const configContent = fs.readFileSync(configPath, 'utf-8');
+      const config = ini.parse(configContent);
+
+      for (const section in config) {
+        let profileName = section;
+        if (section.startsWith('profile ')) {
+          profileName = section.replace('profile ', '');
+        }
+
+        const existingProfile = profiles.find(p => p.name === profileName);
+        if (existingProfile) {
+          existingProfile.region = config[section].region;
+        } else {
+          profiles.push({
+            name: profileName,
+            region: config[section].region,
+          });
+        }
+      }
+    }
+
+    return { profiles };
   });
 
   createWindow();

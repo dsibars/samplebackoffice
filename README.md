@@ -32,3 +32,10 @@ Use the provided `Makefile` to interact with the project:
 - `make build` - Build the app using Vite (and build the Electron wrapper)
 - `make test` - Run tests using Vitest
 - `make run` - Launch the development server and open the Electron app locally
+
+## Modules
+
+### AWS Management
+A utility to manage AWS resources using local machine credentials.
+- **Parameter Store**: List, search, and view parameters (with decryption).
+- **Credential Setup**: Detects local profiles and provides setup guidance for Mac/Linux.

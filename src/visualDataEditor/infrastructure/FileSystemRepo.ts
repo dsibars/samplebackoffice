@@ -1,15 +1,5 @@
 import { ElectronFileResult } from '../domain/DataModel';
 
-// Type declarations to let TS know about our electron context bridge API
-declare global {
-  interface Window {
-    electronAPI?: {
-      openFile: () => Promise<ElectronFileResult | null>;
-      saveFile: (filePath: string, content: string) => Promise<boolean>;
-    };
-  }
-}
-
 export class FileSystemRepo {
   /**
    * Triggers the OS file picker and returns file details.
