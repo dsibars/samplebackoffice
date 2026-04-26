@@ -25,7 +25,8 @@ export function CredentialSetupTab({ onConfigUpdate }: CredentialSetupTabProps) 
     setLoading(true);
     try {
       const config = await configReader.readConfiguration();
-      setProfiles(config.profiles);
+      // Filter out 'mock' from the machine configuration display to avoid confusion
+      setProfiles(config.profiles.filter(p => p.name !== 'mock'));
     } catch (err) {
       console.error('Failed to read AWS config', err);
     } finally {

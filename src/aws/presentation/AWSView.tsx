@@ -63,15 +63,11 @@ export function AWSView() {
               value={profile}
               onChange={handleProfileChange}
               className="block w-40 pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md border"
-              disabled={!hasConfig}
             >
-              {profiles.length > 0 ? (
-                profiles.map(p => (
-                  <option key={p.name} value={p.name}>{p.name}</option>
-                ))
-              ) : (
-                <option value="default">default</option>
-              )}
+              {profiles.map(p => (
+                <option key={p.name} value={p.name}>{p.name}</option>
+              ))}
+              {!profiles.some(p => p.name === 'mock') && <option value="mock">mock</option>}
             </select>
           </div>
 
@@ -119,9 +115,9 @@ export function AWSView() {
 
         <div className="p-6 flex-1 overflow-auto">
           {activeTab === 'ssm' && (
-            hasConfig ? <ParameterStoreTab /> :
+            (hasConfig || profile === 'mock') ? <ParameterStoreTab /> :
             <div className="text-center py-12">
-              <p className="text-gray-500 mb-4">No local AWS credentials detected. Please configure them to use the Parameter Store.</p>
+              <p className="text-gray-500 mb-4">No local AWS credentials detected. Please configure them to use the Parameter Store or use the 'mock' profile.</p>
               <button
                 onClick={() => setActiveTab('setup')}
                 className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none"

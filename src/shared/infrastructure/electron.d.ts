@@ -14,6 +14,8 @@ export interface IElectronAPI {
   readAWSConfiguration: () => Promise<AWSConfiguration>;
   awsSSMListParameters: (region: string, profile: string) => Promise<ParameterMetadata[]>;
   awsSSMGetParameter: (region: string, profile: string, name: string) => Promise<Parameter | undefined>;
+  getSSMCategorizations: () => Promise<string[]>;
+  saveSSMCategorization: (patterns: string[]) => Promise<boolean>;
 }
 
 declare global {

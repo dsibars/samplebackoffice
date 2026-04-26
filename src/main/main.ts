@@ -6,10 +6,58 @@ import * as fs from 'node:fs';
 import * as path from 'node:path';
 import * as os from 'node:os';
 import * as ini from 'ini';
-import { SSMClient, DescribeParametersCommand, GetParameterCommand } from '@aws-sdk/client-ssm';
+import { SSMClient, DescribeParametersCommand, GetParameterCommand, ParameterMetadata, Parameter } from '@aws-sdk/client-ssm';
 import { fromIni } from '@aws-sdk/credential-providers';
 
 const authorizedPaths = new Set<string>();
+
+const MOCK_PROFILE = 'mock';
+
+const INITIAL_MOCK_DATA: Parameter[] = [
+  { Name: '/dev/config/accounts/db.host', Type: 'String', Value: 'dev-db.internal', LastModifiedDate: new Date() },
+  { Name: '/dev/config/accounts/db.password', Type: 'SecureString', Value: 'd3vP@ssw0rd', LastModifiedDate: new Date() },
+  { Name: '/live/config/auth/jwt.secret', Type: 'SecureString', Value: 'secret-token-123', LastModifiedDate: new Date() },
+  { Name: '/live/config/infra/ee6798/some.property', Type: 'String', Value: 'infra-value', LastModifiedDate: new Date() },
+  { Name: '/dev/config/inventory/api.url', Type: 'String', Value: 'https://api-dev.inventory.com', LastModifiedDate: new Date() },
+  { Name: '/live/config/shipping/regions', Type: 'StringList', Value: 'us-east-1,eu-west-1,ap-southeast-1', LastModifiedDate: new Date() },
+  { Name: '/unmatched/global/parameter', Type: 'String', Value: 'global-value', LastModifiedDate: new Date() },
+];
+
+const INITIAL_CATEGORIZATIONS = [
+  '/{env}/config/{service}/',
+  '/{env}/config/infra/{container}/'
+];
+
+function getSSMCategorizations(): string[] {
+  const catsPath = path.join(app.getPath('userData'), 'mock-ssm-categorizations.json');
+  if (!fs.existsSync(catsPath)) {
+    fs.writeFileSync(catsPath, JSON.stringify(INITIAL_CATEGORIZATIONS, null, 2));
+    return INITIAL_CATEGORIZATIONS;
+  }
+  try {
+    return JSON.parse(fs.readFileSync(catsPath, 'utf-8'));
+  } catch (e) {
+    return INITIAL_CATEGORIZATIONS;
+  }
+}
+
+function getMockData(): Parameter[] {
+  const mockDbPath = path.join(app.getPath('userData'), 'mock-aws-ssm.json');
+  if (!fs.existsSync(mockDbPath)) {
+    fs.writeFileSync(mockDbPath, JSON.stringify(INITIAL_MOCK_DATA, null, 2));
+    return INITIAL_MOCK_DATA;
+  }
+  try {
+    const data = JSON.parse(fs.readFileSync(mockDbPath, 'utf-8'));
+    // Convert date strings back to Date objects
+    return data.map((p: any) => ({
+      ...p,
+      LastModifiedDate: p.LastModifiedDate ? new Date(p.LastModifiedDate) : undefined
+    }));
+  } catch (e) {
+    return INITIAL_MOCK_DATA;
+  }
+}
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -68,6 +116,15 @@ app.whenReady().then(() => {
   });
 
   ipcMain.handle('aws-ssm-list-parameters', async (_event, region: string, profile: string) => {
+    if (profile === MOCK_PROFILE) {
+      const mockData = getMockData();
+      return mockData.map(p => ({
+        Name: p.Name,
+        Type: p.Type,
+        LastModifiedDate: p.LastModifiedDate
+      } as ParameterMetadata));
+    }
+
     const client = new SSMClient({
       region,
       credentials: fromIni({ profile })
@@ -78,6 +135,11 @@ app.whenReady().then(() => {
   });
 
   ipcMain.handle('aws-ssm-get-parameter', async (_event, region: string, profile: string, name: string) => {
+    if (profile === MOCK_PROFILE) {
+      const mockData = getMockData();
+      return mockData.find(p => p.Name === name);
+    }
+
     const client = new SSMClient({
       region,
       credentials: fromIni({ profile })
@@ -87,11 +149,23 @@ app.whenReady().then(() => {
     return response.Parameter;
   });
 
+  ipcMain.handle('get-ssm-categorizations', async () => {
+    return getSSMCategorizations();
+  });
+
+  ipcMain.handle('save-ssm-categorization', async (_event, patterns: string[]) => {
+    const catsPath = path.join(app.getPath('userData'), 'mock-ssm-categorizations.json');
+    fs.writeFileSync(catsPath, JSON.stringify(patterns, null, 2));
+    return true;
+  });
+
   ipcMain.handle('read-aws-configuration', async () => {
     const awsPath = path.join(os.homedir(), '.aws', 'credentials');
     const configPath = path.join(os.homedir(), '.aws', 'config');
 
-    let profiles: any[] = [];
+    let profiles: any[] = [
+      { name: MOCK_PROFILE, region: 'local' }
+    ];
 
     if (fs.existsSync(awsPath)) {
       const credentialsContent = fs.readFileSync(awsPath, 'utf-8');

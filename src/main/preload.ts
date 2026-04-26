@@ -9,4 +9,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
   readAWSConfiguration: () => ipcRenderer.invoke('read-aws-configuration'),
   awsSSMListParameters: (region: string, profile: string) => ipcRenderer.invoke('aws-ssm-list-parameters', region, profile),
   awsSSMGetParameter: (region: string, profile: string, name: string) => ipcRenderer.invoke('aws-ssm-get-parameter', region, profile, name),
+  getSSMCategorizations: () => ipcRenderer.invoke('get-ssm-categorizations'),
+  saveSSMCategorization: (patterns: string[]) => ipcRenderer.invoke('save-ssm-categorization', patterns),
 });
