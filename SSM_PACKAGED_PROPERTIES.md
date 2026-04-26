@@ -1,43 +1,48 @@
-# SSM Packaged Properties
+# SSM Packaged Properties & Categorization
 
-This document describes a future feature for the AWS Parameter Store management in the Sample Backoffice app.
+This document describes the dynamic categorization feature for AWS Parameter Store management.
 
-## Feature Overview
+## Feature Overview: Dynamic Categorization
 
-In many organizations, AWS Parameter Store keys follow a hierarchical prefix pattern to organize configuration for different environments and services.
+Instead of hardcoded grouping, the backoffice app uses a collection of user-defined "SSM Categorizations" (prefix patterns). These patterns are applied dynamically to all retrieved AWS Parameter keys.
 
-**Example Pattern:**
-`/{env}/config/{service}/{property}`
-
-**Example Keys:**
-- `/dev/config/accounts/jdbc.url`
-- `/dev/config/accounts/jdbc.password`
-- `/live/config/accounts/jdbc.url`
+### Moment T0: No Categorizations
+Parameters are shown as a simple list with their full Name:
 - `/live/config/auth/jwt.secret`
 
-## Concept: Packaged Properties
+### Moment T1: Configure Categorizations
+The user adds prefix patterns, for example:
+1. `/{env}/config/{service}/`
+2. `/{env}/config/infra/{container}/`
 
-Instead of managing each parameter individually, the backoffice app will allow "packaging" or "grouping" these parameters based on their prefix components.
+### Moment T2: Dynamic Matching & Column Aggregation
+When listing parameters, each key is matched against the defined patterns.
 
-When managing a "packaged property", the user will interact with a structured view that breaks down the key into its constituent parts:
+**Match Case 1:** `/live/config/auth/jwt.secret` matches pattern 1.
+- **Extracted Attributes**: `env=live`, `service=auth`, `property=jwt.secret`
 
-- **Environment**: e.g., `dev`, `live`, `staging`
-- **Service**: e.g., `accounts`, `auth`, `payment-gateway`
-- **Property**: e.g., `jdbc.password`, `api.key`
+**Match Case 2:** `/live/config/infra/ee6798/some.property` matches pattern 2.
+- **Extracted Attributes**: `env=live`, `container=ee6798`, `property=some.property`
 
-## UI/UX Implementation Goals
+**Fallback Case**: A parameter that doesn't match any pattern.
+- **Extracted Attributes**: `property=/unmatched/path/to/key`
 
-1. **Grouped View**: The UI should allow filtering or grouping parameters by Environment and Service.
-2. **Simplified Editing**: When adding or editing a parameter, the user should be able to select the Environment and Service from dropdowns (or type new ones) and then provide the Property name and Value.
-3. **Implicit Composition**: The application will automatically compose the full AWS Parameter Name (e.g., `/dev/config/accounts/jdbc.password`) when interacting with the real AWS API, but the user only manages the decomposed attributes.
+### Moment T3: Aggregated UI View
+The UI table dynamically aggregates all captured variables into columns. In the example above, the table would have columns:
+- `env`
+- `service`
+- `container`
+- `property`
 
-## Mock Profile Integration
+Rows will populate only the columns that correspond to their matched pattern's variables.
 
-For testing and demonstration purposes, the built-in `mock` AWS profile will include several sample parameters following this pattern. This allows the development of the "Packaged Properties" feature even without a live AWS environment.
+## Implementation Rules
 
-### Sample Mock Data Pattern
-`/{env}/config/{service}/{property}`
+1. **Categorizations are Global**: They apply across all AWS profiles (real and mock).
+2. **First Match Wins**: Patterns should be evaluated in order.
+3. **Variable Extraction**: Patterns use `{variable_name}` syntax to identify segments to be extracted as columns.
+4. **Editing**: When editing, the UI uses the matched pattern to decompose the name, and when saving, it recomposes the full AWS name using the same pattern.
 
-- `env`: [dev, live]
-- `service`: [accounts, inventory, shipping]
-- `property`: [db.host, db.password, api.token, max.retries]
+## Mock Profile Implementation
+
+The `mock` profile comes pre-configured with the sample categorizations and data described above to demonstrate this dynamic behavior.

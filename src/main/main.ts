@@ -16,11 +16,30 @@ const MOCK_PROFILE = 'mock';
 const INITIAL_MOCK_DATA: Parameter[] = [
   { Name: '/dev/config/accounts/db.host', Type: 'String', Value: 'dev-db.internal', LastModifiedDate: new Date() },
   { Name: '/dev/config/accounts/db.password', Type: 'SecureString', Value: 'd3vP@ssw0rd', LastModifiedDate: new Date() },
-  { Name: '/live/config/accounts/db.host', Type: 'String', Value: 'prod-db.internal', LastModifiedDate: new Date() },
-  { Name: '/live/config/accounts/db.password', Type: 'SecureString', Value: 'pr0dP@ssw0rd', LastModifiedDate: new Date() },
+  { Name: '/live/config/auth/jwt.secret', Type: 'SecureString', Value: 'secret-token-123', LastModifiedDate: new Date() },
+  { Name: '/live/config/infra/ee6798/some.property', Type: 'String', Value: 'infra-value', LastModifiedDate: new Date() },
   { Name: '/dev/config/inventory/api.url', Type: 'String', Value: 'https://api-dev.inventory.com', LastModifiedDate: new Date() },
   { Name: '/live/config/shipping/regions', Type: 'StringList', Value: 'us-east-1,eu-west-1,ap-southeast-1', LastModifiedDate: new Date() },
+  { Name: '/unmatched/global/parameter', Type: 'String', Value: 'global-value', LastModifiedDate: new Date() },
 ];
+
+const INITIAL_CATEGORIZATIONS = [
+  '/{env}/config/{service}/',
+  '/{env}/config/infra/{container}/'
+];
+
+function getSSMCategorizations(): string[] {
+  const catsPath = path.join(app.getPath('userData'), 'mock-ssm-categorizations.json');
+  if (!fs.existsSync(catsPath)) {
+    fs.writeFileSync(catsPath, JSON.stringify(INITIAL_CATEGORIZATIONS, null, 2));
+    return INITIAL_CATEGORIZATIONS;
+  }
+  try {
+    return JSON.parse(fs.readFileSync(catsPath, 'utf-8'));
+  } catch (e) {
+    return INITIAL_CATEGORIZATIONS;
+  }
+}
 
 function getMockData(): Parameter[] {
   const mockDbPath = path.join(app.getPath('userData'), 'mock-aws-ssm.json');
@@ -128,6 +147,16 @@ app.whenReady().then(() => {
     const command = new GetParameterCommand({ Name: name, WithDecryption: true });
     const response = await client.send(command);
     return response.Parameter;
+  });
+
+  ipcMain.handle('get-ssm-categorizations', async () => {
+    return getSSMCategorizations();
+  });
+
+  ipcMain.handle('save-ssm-categorization', async (_event, patterns: string[]) => {
+    const catsPath = path.join(app.getPath('userData'), 'mock-ssm-categorizations.json');
+    fs.writeFileSync(catsPath, JSON.stringify(patterns, null, 2));
+    return true;
   });
 
   ipcMain.handle('read-aws-configuration', async () => {
