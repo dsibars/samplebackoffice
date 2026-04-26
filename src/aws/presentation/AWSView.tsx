@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { AWSClient } from '../../shared/application/aws/AWSClient';
-import { ElectronAWSConfigurationReader } from '../../shared/infrastructure/aws/ElectronAWSConfigurationReader';
+import { AWSClient } from '../application/AWSClient';
+import { ElectronAWSConfigurationReader } from '../infrastructure/ElectronAWSConfigurationReader';
 import { ParameterStoreTab } from './ParameterStoreTab';
 import { CredentialSetupTab } from './CredentialSetupTab';
-import { AWSProfile } from '../../shared/domain/aws/AWSConfiguration';
+import { AWSProfile } from '../domain/AWSConfiguration';
 
 const REGIONS = [
   'eu-west-1', 'eu-central-1', 'us-east-1', 'us-west-2', 'ap-southeast-1'

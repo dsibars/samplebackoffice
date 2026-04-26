@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
-import { AWSClient } from '../../shared/application/aws/AWSClient';
+import { AWSClient } from '../application/AWSClient';
 import { ParameterMetadata, ParameterType } from '@aws-sdk/client-ssm';
-import { SSMPathService, ParsedPath } from '../../shared/application/aws/SSMPathService';
+import { SSMPathService, ParsedPath } from '../application/SSMPathService';
 
 interface ExtendedParameterMetadata extends ParameterMetadata {
   parsed: ParsedPath;

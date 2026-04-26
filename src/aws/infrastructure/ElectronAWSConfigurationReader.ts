@@ -1,4 +1,4 @@
-import { IAWSConfigurationReader, AWSConfiguration } from '../../domain/aws/AWSConfiguration';
+import { IAWSConfigurationReader, AWSConfiguration } from '../domain/AWSConfiguration';
 
 export class ElectronAWSConfigurationReader implements IAWSConfigurationReader {
   async readConfiguration(): Promise<AWSConfiguration> {

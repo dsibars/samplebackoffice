@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { ElectronAWSConfigurationReader } from '../../shared/infrastructure/aws/ElectronAWSConfigurationReader';
-import { AWSProfile } from '../../shared/domain/aws/AWSConfiguration';
+import { ElectronAWSConfigurationReader } from '../infrastructure/ElectronAWSConfigurationReader';
+import { AWSProfile } from '../domain/AWSConfiguration';
 
 interface CredentialSetupTabProps {
   onConfigUpdate: () => void;
