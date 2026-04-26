@@ -13,4 +13,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
   awsSSMDeleteParameter: (region: string, profile: string, name: string) => ipcRenderer.invoke('aws-ssm-delete-parameter', region, profile, name),
   getSSMCategorizations: () => ipcRenderer.invoke('get-ssm-categorizations'),
   saveSSMCategorization: (patterns: string[]) => ipcRenderer.invoke('save-ssm-categorization', patterns),
+  readAIConfiguration: () => ipcRenderer.invoke('read-ai-configuration'),
+  saveAIConfiguration: (config: any) => ipcRenderer.invoke('save-ai-configuration', config),
+  aiGetModels: (profileId: string) => ipcRenderer.invoke('ai-get-models', profileId),
+  aiPrompt: (profileId: string, model: string, input: string) => ipcRenderer.invoke('ai-prompt', profileId, model, input),
 });

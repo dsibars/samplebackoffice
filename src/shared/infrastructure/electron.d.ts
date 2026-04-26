@@ -1,5 +1,6 @@
 import { AWSConfiguration } from '../domain/aws/AWSConfiguration';
 import { ParameterMetadata, Parameter, ParameterType } from '@aws-sdk/client-ssm';
+import { AIConfiguration } from '../domain/ai/AIProfile';
 
 export interface ElectronFileResult {
   filePath: string;
@@ -18,6 +19,10 @@ export interface IElectronAPI {
   awsSSMDeleteParameter: (region: string, profile: string, name: string) => Promise<boolean>;
   getSSMCategorizations: () => Promise<string[]>;
   saveSSMCategorization: (patterns: string[]) => Promise<boolean>;
+  readAIConfiguration: () => Promise<AIConfiguration>;
+  saveAIConfiguration: (config: AIConfiguration) => Promise<boolean>;
+  aiGetModels: (profileId: string) => Promise<string[]>;
+  aiPrompt: (profileId: string, model: string, input: string) => Promise<string>;
 }
 
 declare global {

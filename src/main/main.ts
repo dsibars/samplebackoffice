@@ -8,6 +8,8 @@ import * as os from 'node:os';
 import * as ini from 'ini';
 import { SSMClient, DescribeParametersCommand, GetParameterCommand, PutParameterCommand, DeleteParameterCommand, ParameterMetadata, Parameter, ParameterType } from '@aws-sdk/client-ssm';
 import { fromIni } from '@aws-sdk/credential-providers';
+import { AIConfiguration } from '../shared/domain/ai/AIProfile.js';
+import { AIService } from '../shared/application/AIService.js';
 
 const authorizedPaths = new Set<string>();
 
@@ -93,7 +95,55 @@ const createWindow = () => {
   }
 };
 
+function getAIConfigPath() {
+  return path.join(os.homedir(), '.samplebackoffice', 'ai_credentials.json');
+}
+
+function ensureAIConfigDir() {
+  const dir = path.dirname(getAIConfigPath());
+  if (!fs.existsSync(dir)) {
+    fs.mkdirSync(dir, { recursive: true });
+  }
+}
+
+function readAIConfig(): AIConfiguration {
+  const configPath = getAIConfigPath();
+  if (!fs.existsSync(configPath)) {
+    return { profiles: [] };
+  }
+  try {
+    return JSON.parse(fs.readFileSync(configPath, 'utf-8'));
+  } catch (e) {
+    console.error('Error reading AI config:', e);
+    return { profiles: [] };
+  }
+}
+
+function saveAIConfig(config: AIConfiguration) {
+  ensureAIConfigDir();
+  fs.writeFileSync(getAIConfigPath(), JSON.stringify(config, null, 2), 'utf-8');
+}
+
 app.whenReady().then(() => {
+  const aiService = new AIService(readAIConfig);
+
+  ipcMain.handle('read-ai-configuration', async () => {
+    return readAIConfig();
+  });
+
+  ipcMain.handle('save-ai-configuration', async (_event, config: AIConfiguration) => {
+    saveAIConfig(config);
+    return true;
+  });
+
+  ipcMain.handle('ai-get-models', async (_event, profileId: string) => {
+    return aiService.getModels(profileId);
+  });
+
+  ipcMain.handle('ai-prompt', async (_event, profileId: string, model: string, input: string) => {
+    return aiService.prompt(profileId, model, input);
+  });
+
   ipcMain.handle('open-file', async () => {
     const { canceled, filePaths } = await dialog.showOpenDialog({
       properties: ['openFile'],

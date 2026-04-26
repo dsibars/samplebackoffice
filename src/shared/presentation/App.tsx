@@ -3,9 +3,10 @@ import { HomeView } from '../../home/presentation/HomeView';
 import { VisualDataEditorView } from '../../visualDataEditor/presentation/VisualDataEditorView';
 import { ClientVisualBuilderView } from '../../clientVisualBuilder/presentation/ClientVisualBuilderView';
 import { AWSView } from '../../aws/presentation/AWSView';
+import { AIView } from '../../ai/presentation/AIView';
 
 export function App() {
-  const [currentView, setCurrentView] = useState<'home' | 'visualDataEditor' | 'clientVisualBuilder' | 'aws'>('home');
+  const [currentView, setCurrentView] = useState<'home' | 'visualDataEditor' | 'clientVisualBuilder' | 'aws' | 'ai'>('home');
 
   return (
     <div className="min-h-screen flex flex-col bg-gray-50">
@@ -36,6 +37,12 @@ export function App() {
           >
             AWS
           </button>
+          <button
+            onClick={() => setCurrentView('ai')}
+            className={`font-medium ${currentView === 'ai' ? 'text-white border-b-2 border-white' : 'text-blue-200 hover:text-white'}`}
+          >
+            AI
+          </button>
         </nav>
       </header>
       <main className="flex-1 w-full p-6 xl:p-8">
@@ -43,6 +50,7 @@ export function App() {
         {currentView === 'visualDataEditor' && <VisualDataEditorView />}
         {currentView === 'clientVisualBuilder' && <ClientVisualBuilderView />}
         {currentView === 'aws' && <AWSView />}
+        {currentView === 'ai' && <AIView />}
       </main>
     </div>
   );
