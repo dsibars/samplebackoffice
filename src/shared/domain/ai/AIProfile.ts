@@ -1,12 +1,11 @@
-export type AIProvider = 'gemini' | 'glean';
+export type AIProviderType = 'gemini' | 'glean';
 
 export interface AIProfile {
   id: string;
   name: string;
   description: string;
-  provider: AIProvider;
-  apiKey: string;
-  gleanInstance?: string; // Required for Glean
+  provider: AIProviderType;
+  settings: Record<string, string>;
 }
 
 export interface AIConfiguration {

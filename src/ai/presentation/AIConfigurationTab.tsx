@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { AIConfiguration, AIProfile, AIProvider } from '../../shared/domain/ai/AIProfile';
+import { AIConfiguration, AIProfile, AIProviderType } from '../../shared/domain/ai/AIProfile';
 
 export function AIConfigurationTab() {
   const [config, setConfig] = useState<AIConfiguration>({ profiles: [] });
@@ -15,7 +15,7 @@ export function AIConfigurationTab() {
 
   const loadConfig = async () => {
     try {
-      const loaded = await window.electronAPI?.readAIConfiguration();
+      const loaded = await window.electronAPI?.ai.readConfiguration();
       if (loaded) setConfig(loaded);
     } catch (e) {
       console.error(e);
@@ -24,28 +24,41 @@ export function AIConfigurationTab() {
   };
 
   const handleSave = async (profile: Partial<AIProfile>) => {
-    if (!profile.name || !profile.provider || !profile.apiKey) {
+    const apiKey = (profile as any).apiKey || profile.settings?.apiKey;
+    const gleanInstance = (profile as any).gleanInstance || profile.settings?.instance;
+
+    if (!profile.name || !profile.provider || !apiKey) {
       setError('Name, Provider, and API Key are required.');
       return;
     }
 
-    if (profile.provider === 'glean' && !profile.gleanInstance) {
+    if (profile.provider === 'glean' && !gleanInstance) {
         setError('Glean instance is required for Glean provider.');
         return;
     }
 
+    const settings: Record<string, string> = { apiKey };
+    if (gleanInstance) settings.instance = gleanInstance;
+
+    const profileToSave: AIProfile = {
+      id: profile.id || crypto.randomUUID(),
+      name: profile.name!,
+      description: profile.description || '',
+      provider: profile.provider!,
+      settings
+    };
+
     const newProfiles = [...config.profiles];
     if (profile.id) {
       const index = newProfiles.findIndex(p => p.id === profile.id);
-      newProfiles[index] = profile as AIProfile;
+      newProfiles[index] = profileToSave;
     } else {
-      const newProfile = { ...profile, id: crypto.randomUUID() } as AIProfile;
-      newProfiles.push(newProfile);
+      newProfiles.push(profileToSave);
     }
 
     const newConfig = { profiles: newProfiles };
     try {
-      await window.electronAPI?.saveAIConfiguration(newConfig);
+      await window.electronAPI?.ai.saveConfiguration(newConfig);
       setConfig(newConfig);
       setEditingProfile(null);
       setError(null);
@@ -58,7 +71,7 @@ export function AIConfigurationTab() {
       const newProfiles = config.profiles.filter(p => p.id !== id);
       const newConfig = { profiles: newProfiles };
       try {
-        await window.electronAPI?.saveAIConfiguration(newConfig);
+        await window.electronAPI?.ai.saveConfiguration(newConfig);
         setConfig(newConfig);
         if (activeProfileId === id) {
             setActiveProfileId('');
@@ -80,7 +93,7 @@ export function AIConfigurationTab() {
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-lg font-semibold text-gray-800">AI Profiles</h2>
           <button
-            onClick={() => setEditingProfile({ name: '', description: '', provider: 'gemini', apiKey: '' })}
+            onClick={() => setEditingProfile({ name: '', description: '', provider: 'gemini', settings: {} })}
             className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
           >
             Add Profile
@@ -168,7 +181,7 @@ export function AIConfigurationTab() {
                 <label className="block text-sm font-medium text-gray-700">Provider</label>
                 <select
                   value={editingProfile.provider || 'gemini'}
-                  onChange={(e) => setEditingProfile({ ...editingProfile, provider: e.target.value as AIProvider })}
+                  onChange={(e) => setEditingProfile({ ...editingProfile, provider: e.target.value as AIProviderType })}
                   className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"
                 >
                   <option value="gemini">Gemini</option>
@@ -179,8 +192,8 @@ export function AIConfigurationTab() {
                 <label className="block text-sm font-medium text-gray-700">API Key</label>
                 <input
                   type="password"
-                  value={editingProfile.apiKey || ''}
-                  onChange={(e) => setEditingProfile({ ...editingProfile, apiKey: e.target.value })}
+                  value={(editingProfile as any).apiKey || editingProfile.settings?.apiKey || ''}
+                  onChange={(e) => setEditingProfile({ ...editingProfile, apiKey: e.target.value } as any)}
                   className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"
                   placeholder="Enter API Key"
                 />
@@ -190,8 +203,8 @@ export function AIConfigurationTab() {
                   <label className="block text-sm font-medium text-gray-700">Glean Instance</label>
                   <input
                     type="text"
-                    value={editingProfile.gleanInstance || ''}
-                    onChange={(e) => setEditingProfile({ ...editingProfile, gleanInstance: e.target.value })}
+                    value={(editingProfile as any).gleanInstance || editingProfile.settings?.instance || ''}
+                    onChange={(e) => setEditingProfile({ ...editingProfile, gleanInstance: e.target.value } as any)}
                     className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"
                     placeholder="company-name"
                   />

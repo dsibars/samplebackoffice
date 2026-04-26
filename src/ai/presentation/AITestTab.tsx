@@ -17,7 +17,7 @@ export function AITestTab() {
 
   const loadConfig = async () => {
     try {
-      const loaded = await window.electronAPI?.readAIConfiguration();
+      const loaded = await window.electronAPI?.ai.readConfiguration();
       if (loaded) {
         setConfig(loaded);
         const savedActive = localStorage.getItem('active-ai-profile');
@@ -36,7 +36,7 @@ export function AITestTab() {
 
   const loadModels = async (profileId: string) => {
     try {
-      const availableModels = await window.electronAPI?.aiGetModels(profileId);
+      const availableModels = await window.electronAPI?.ai.getModels(profileId);
       if (availableModels) {
         setModels(availableModels);
         if (availableModels.length > 0) {
@@ -62,7 +62,7 @@ export function AITestTab() {
     setError(null);
     setResult('');
     try {
-      const response = await window.electronAPI?.aiPrompt(selectedProfileId, selectedModel, prompt);
+      const response = await window.electronAPI?.ai.prompt(selectedProfileId, selectedModel, prompt);
       setResult(response || 'No response received.');
     } catch (e: any) {
       console.error(e);

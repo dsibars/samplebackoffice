@@ -36,41 +36,41 @@ export class AWSClient {
     if (!window.electronAPI) {
       throw new Error('Electron API not available');
     }
-    return window.electronAPI.awsSSMListParameters(this.region, this.profile);
+    return window.electronAPI.aws.ssm.listParameters(this.region, this.profile);
   }
 
   public async getParameter(name: string): Promise<Parameter | undefined> {
     if (!window.electronAPI) {
       throw new Error('Electron API not available');
     }
-    return window.electronAPI.awsSSMGetParameter(this.region, this.profile, name);
+    return window.electronAPI.aws.ssm.getParameter(this.region, this.profile, name);
   }
 
   public async putParameter(name: string, value: string, type: ParameterType): Promise<boolean> {
     if (!window.electronAPI) {
       throw new Error('Electron API not available');
     }
-    return window.electronAPI.awsSSMPutParameter(this.region, this.profile, name, value, type);
+    return window.electronAPI.aws.ssm.putParameter(this.region, this.profile, name, value, type);
   }
 
   public async deleteParameter(name: string): Promise<boolean> {
     if (!window.electronAPI) {
       throw new Error('Electron API not available');
     }
-    return window.electronAPI.awsSSMDeleteParameter(this.region, this.profile, name);
+    return window.electronAPI.aws.ssm.deleteParameter(this.region, this.profile, name);
   }
 
   public async getSSMCategorizations(): Promise<string[]> {
     if (!window.electronAPI) {
       throw new Error('Electron API not available');
     }
-    return window.electronAPI.getSSMCategorizations();
+    return window.electronAPI.aws.ssm.getCategorizations();
   }
 
   public async saveSSMCategorization(patterns: string[]): Promise<boolean> {
     if (!window.electronAPI) {
       throw new Error('Electron API not available');
     }
-    return window.electronAPI.saveSSMCategorization(patterns);
+    return window.electronAPI.aws.ssm.saveCategorization(patterns);
   }
 }

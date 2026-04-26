@@ -1,58 +1,38 @@
-import { GoogleGenerativeAI } from '@google/generative-ai';
 import { IAIService } from '../domain/ai/IAIService';
-import { AIConfiguration } from '../domain/ai/AIProfile';
+import { IAIProvider } from '../domain/ai/IAIProvider';
+import { AIConfiguration, AIProviderType } from '../domain/ai/AIProfile';
 
 export class AIService implements IAIService {
+  private providers: Map<AIProviderType, IAIProvider> = new Map();
+
   constructor(private getConfig: () => AIConfiguration) {}
 
-  async getModels(profileId: string): Promise<string[]> {
-    const config = this.getConfig();
-    const profile = config.profiles.find(p => p.id === profileId);
-    if (!profile) throw new Error('Profile not found');
+  registerProvider(type: AIProviderType, provider: IAIProvider) {
+    this.providers.set(type, provider);
+  }
 
-    if (profile.provider === 'gemini') {
-      return ['gemini-1.5-flash', 'gemini-1.5-pro', 'gemini-pro'];
-    } else if (profile.provider === 'glean') {
-      return ['chat'];
-    }
-    return [];
+  async getModels(profileId: string): Promise<string[]> {
+    const profile = this.getProfile(profileId);
+    const provider = this.getProvider(profile.provider);
+    return provider.getModels(profile.settings);
   }
 
   async prompt(profileId: string, model: string, input: string): Promise<string> {
+    const profile = this.getProfile(profileId);
+    const provider = this.getProvider(profile.provider);
+    return provider.prompt(model, input, profile.settings);
+  }
+
+  private getProfile(profileId: string) {
     const config = this.getConfig();
     const profile = config.profiles.find(p => p.id === profileId);
-    if (!profile) throw new Error('Profile not found');
+    if (!profile) throw new Error(`Profile with id ${profileId} not found`);
+    return profile;
+  }
 
-    if (profile.provider === 'gemini') {
-      const genAI = new GoogleGenerativeAI(profile.apiKey);
-      const geminiModel = genAI.getGenerativeModel({ model });
-      const result = await geminiModel.generateContent(input);
-      const response = await result.response;
-      return response.text();
-    } else if (profile.provider === 'glean') {
-      if (!profile.gleanInstance) throw new Error('Glean instance not configured');
-
-      const url = `https://${profile.gleanInstance}-be.glean.com/api/v1/chat`;
-      const response = await fetch(url, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${profile.apiKey}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          messages: [{ fragments: [{ text: input }] }]
-        })
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`Glean API error: ${response.status} ${errorText}`);
-      }
-
-      const data: any = await response.json();
-      return data.messages?.[0]?.fragments?.[0]?.text || 'No response from Glean';
-    }
-
-    throw new Error('Unsupported provider');
+  private getProvider(type: AIProviderType) {
+    const provider = this.providers.get(type);
+    if (!provider) throw new Error(`AI Provider ${type} not registered`);
+    return provider;
   }
 }

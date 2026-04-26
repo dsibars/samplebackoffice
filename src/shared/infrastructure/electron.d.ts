@@ -8,21 +8,35 @@ export interface ElectronFileResult {
   fileName: string;
 }
 
-export interface IElectronAPI {
+export interface IFilesAPI {
   openFile: () => Promise<ElectronFileResult | null>;
   saveFile: (filePath: string, content: string) => Promise<boolean>;
+}
+
+export interface IAWSApi {
   hasAWSConfiguration: () => Promise<boolean>;
   readAWSConfiguration: () => Promise<AWSConfiguration>;
-  awsSSMListParameters: (region: string, profile: string) => Promise<ParameterMetadata[]>;
-  awsSSMGetParameter: (region: string, profile: string, name: string) => Promise<Parameter | undefined>;
-  awsSSMPutParameter: (region: string, profile: string, name: string, value: string, type: ParameterType) => Promise<boolean>;
-  awsSSMDeleteParameter: (region: string, profile: string, name: string) => Promise<boolean>;
-  getSSMCategorizations: () => Promise<string[]>;
-  saveSSMCategorization: (patterns: string[]) => Promise<boolean>;
-  readAIConfiguration: () => Promise<AIConfiguration>;
-  saveAIConfiguration: (config: AIConfiguration) => Promise<boolean>;
-  aiGetModels: (profileId: string) => Promise<string[]>;
-  aiPrompt: (profileId: string, model: string, input: string) => Promise<string>;
+  ssm: {
+    listParameters: (region: string, profile: string) => Promise<ParameterMetadata[]>;
+    getParameter: (region: string, profile: string, name: string) => Promise<Parameter | undefined>;
+    putParameter: (region: string, profile: string, name: string, value: string, type: ParameterType) => Promise<boolean>;
+    deleteParameter: (region: string, profile: string, name: string) => Promise<boolean>;
+    getCategorizations: () => Promise<string[]>;
+    saveCategorization: (patterns: string[]) => Promise<boolean>;
+  };
+}
+
+export interface IAIApi {
+  readConfiguration: () => Promise<AIConfiguration>;
+  saveConfiguration: (config: AIConfiguration) => Promise<boolean>;
+  getModels: (profileId: string) => Promise<string[]>;
+  prompt: (profileId: string, model: string, input: string) => Promise<string>;
+}
+
+export interface IElectronAPI {
+  files: IFilesAPI;
+  aws: IAWSApi;
+  ai: IAIApi;
 }
 
 declare global {
