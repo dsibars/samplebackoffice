@@ -1,4 +1,4 @@
-import { ParameterMetadata, Parameter } from '@aws-sdk/client-ssm';
+import { ParameterMetadata, Parameter, ParameterType } from '@aws-sdk/client-ssm';
 
 export class AWSClient {
   private static instance: AWSClient;
@@ -44,5 +44,33 @@ export class AWSClient {
       throw new Error('Electron API not available');
     }
     return window.electronAPI.awsSSMGetParameter(this.region, this.profile, name);
+  }
+
+  public async putParameter(name: string, value: string, type: ParameterType): Promise<boolean> {
+    if (!window.electronAPI) {
+      throw new Error('Electron API not available');
+    }
+    return window.electronAPI.awsSSMPutParameter(this.region, this.profile, name, value, type);
+  }
+
+  public async deleteParameter(name: string): Promise<boolean> {
+    if (!window.electronAPI) {
+      throw new Error('Electron API not available');
+    }
+    return window.electronAPI.awsSSMDeleteParameter(this.region, this.profile, name);
+  }
+
+  public async getSSMCategorizations(): Promise<string[]> {
+    if (!window.electronAPI) {
+      throw new Error('Electron API not available');
+    }
+    return window.electronAPI.getSSMCategorizations();
+  }
+
+  public async saveSSMCategorization(patterns: string[]): Promise<boolean> {
+    if (!window.electronAPI) {
+      throw new Error('Electron API not available');
+    }
+    return window.electronAPI.saveSSMCategorization(patterns);
   }
 }

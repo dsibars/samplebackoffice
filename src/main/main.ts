@@ -6,7 +6,7 @@ import * as fs from 'node:fs';
 import * as path from 'node:path';
 import * as os from 'node:os';
 import * as ini from 'ini';
-import { SSMClient, DescribeParametersCommand, GetParameterCommand, ParameterMetadata, Parameter } from '@aws-sdk/client-ssm';
+import { SSMClient, DescribeParametersCommand, GetParameterCommand, PutParameterCommand, DeleteParameterCommand, ParameterMetadata, Parameter, ParameterType } from '@aws-sdk/client-ssm';
 import { fromIni } from '@aws-sdk/credential-providers';
 
 const authorizedPaths = new Set<string>();
@@ -21,11 +21,13 @@ const INITIAL_MOCK_DATA: Parameter[] = [
   { Name: '/dev/config/inventory/api.url', Type: 'String', Value: 'https://api-dev.inventory.com', LastModifiedDate: new Date() },
   { Name: '/live/config/shipping/regions', Type: 'StringList', Value: 'us-east-1,eu-west-1,ap-southeast-1', LastModifiedDate: new Date() },
   { Name: '/unmatched/global/parameter', Type: 'String', Value: 'global-value', LastModifiedDate: new Date() },
+  { Name: '/test/config/infra/xyz123/logs.level', Type: 'String', Value: 'debug', LastModifiedDate: new Date() },
+  { Name: '/prod/config/payment/api.key', Type: 'SecureString', Value: 'prod-key', LastModifiedDate: new Date() },
 ];
 
 const INITIAL_CATEGORIZATIONS = [
-  '/{env}/config/{service}/',
-  '/{env}/config/infra/{container}/'
+  '/{env}/config/infra/{container}/',
+  '/{env}/config/{service}/'
 ];
 
 function getSSMCategorizations(): string[] {
@@ -57,6 +59,11 @@ function getMockData(): Parameter[] {
   } catch (e) {
     return INITIAL_MOCK_DATA;
   }
+}
+
+function saveMockData(data: Parameter[]) {
+  const mockDbPath = path.join(app.getPath('userData'), 'mock-aws-ssm.json');
+  fs.writeFileSync(mockDbPath, JSON.stringify(data, null, 2));
 }
 
 const __filename = fileURLToPath(import.meta.url);
@@ -147,6 +154,56 @@ app.whenReady().then(() => {
     const command = new GetParameterCommand({ Name: name, WithDecryption: true });
     const response = await client.send(command);
     return response.Parameter;
+  });
+
+  ipcMain.handle('aws-ssm-put-parameter', async (_event, region: string, profile: string, name: string, value: string, type: ParameterType) => {
+    if (profile === MOCK_PROFILE) {
+      const mockData = getMockData();
+      const existingIndex = mockData.findIndex(p => p.Name === name);
+      const newParam: Parameter = {
+        Name: name,
+        Value: value,
+        Type: type,
+        LastModifiedDate: new Date()
+      };
+      if (existingIndex >= 0) {
+        mockData[existingIndex] = newParam;
+      } else {
+        mockData.push(newParam);
+      }
+      saveMockData(mockData);
+      return true;
+    }
+
+    const client = new SSMClient({
+      region,
+      credentials: fromIni({ profile })
+    });
+    const command = new PutParameterCommand({
+      Name: name,
+      Value: value,
+      Type: type,
+      Overwrite: true
+    });
+    await client.send(command);
+    return true;
+  });
+
+  ipcMain.handle('aws-ssm-delete-parameter', async (_event, region: string, profile: string, name: string) => {
+    if (profile === MOCK_PROFILE) {
+      const mockData = getMockData();
+      const newData = mockData.filter(p => p.Name !== name);
+      saveMockData(newData);
+      return true;
+    }
+
+    const client = new SSMClient({
+      region,
+      credentials: fromIni({ profile })
+    });
+    const command = new DeleteParameterCommand({ Name: name });
+    await client.send(command);
+    return true;
   });
 
   ipcMain.handle('get-ssm-categorizations', async () => {
