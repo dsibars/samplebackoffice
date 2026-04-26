@@ -2,9 +2,29 @@ import { GoogleGenerativeAI } from '@google/generative-ai';
 import { IAIProvider } from '../../domain/ai/IAIProvider';
 
 export class GeminiProvider implements IAIProvider {
-  async getModels(_settings: Record<string, string>): Promise<string[]> {
-    // In a real scenario, this could fetch from Google's models.list API
-    return ['gemini-1.5-flash', 'gemini-1.5-pro', 'gemini-pro'];
+  async getModels(settings: Record<string, string>): Promise<string[]> {
+    const apiKey = settings.apiKey;
+    if (!apiKey) throw new Error('Gemini API Key is missing');
+
+    const response = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`
+    );
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(
+        `Failed to fetch Gemini models: ${response.statusText}${
+          errorData.error?.message ? ` - ${errorData.error.message}` : ''
+        }`
+      );
+    }
+
+    const data = await response.json();
+    const models = data.models || [];
+
+    return models
+      .filter((m: any) => m.supportedGenerationMethods?.includes('generateContent'))
+      .map((m: any) => m.name.replace('models/', ''));
   }
 
   async prompt(model: string, input: string, settings: Record<string, string>): Promise<string> {
