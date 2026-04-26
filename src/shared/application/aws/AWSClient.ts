@@ -2,8 +2,8 @@ import { ParameterMetadata, Parameter } from '@aws-sdk/client-ssm';
 
 export class AWSClient {
   private static instance: AWSClient;
-  private region: string = 'eu-west-1';
-  private profile: string = 'default';
+  private region: string = localStorage.getItem('aws-region') || 'eu-west-1';
+  private profile: string = localStorage.getItem('aws-profile') || 'mock';
 
   private constructor() {}
 
@@ -16,6 +16,7 @@ export class AWSClient {
 
   public setRegion(region: string): void {
     this.region = region;
+    localStorage.setItem('aws-region', region);
   }
 
   public getRegion(): string {
@@ -24,6 +25,7 @@ export class AWSClient {
 
   public setProfile(profile: string): void {
     this.profile = profile;
+    localStorage.setItem('aws-profile', profile);
   }
 
   public getProfile(): string {

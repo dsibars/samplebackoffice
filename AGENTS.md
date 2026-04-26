@@ -4,7 +4,7 @@ This document dictates the rules and architectural choices of the Sample Backoff
 
 ## Goals and Current Status
 - **Goal**: Maintain a modular, scalable Electron (and Web-compatible) React + Vite application structured via a lightweight Domain-Driven Design (DDD) approach.
-- **Current Status**: Bootstrapping phase. The foundational `shared` and `home` modules are initialized alongside Vite and Electron configurations.
+- **Current Status**: Bootstrapping phase. The foundational `shared` and `home` modules are initialized alongside Vite and Electron configurations. AWS management module is being expanded with profile management and mock support.
 
 ## Architecture Rules
 1. **Lightweight DDD**: 
@@ -31,4 +31,5 @@ This document dictates the rules and architectural choices of the Sample Backoff
 ## Custom Tips Section
 *When an agent interacts with the user and needs to "correct" something, or extracts a learning around how the user wants things done in this codebase, add it to this section to prevent repetitive mistakes.*
 
-- (No tips logged yet)
+- **AWS Security**: The application MUST NOT store sensitive AWS credentials (like Access Keys) in `localStorage` or internal files. It must delegate credential management to the local machine configuration (`~/.aws/credentials` and `~/.aws/config`). If credentials are missing, provide guidance/terminal commands for the user to configure their system.
+- **Mock AWS Profile**: A built-in 'mock' profile is always available for testing. This profile simulates AWS SSM interactions using a local mock database (managed in the Electron Main process) to ensure the application remains functional and testable without real AWS connectivity.
