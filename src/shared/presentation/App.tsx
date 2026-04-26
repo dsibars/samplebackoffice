@@ -4,9 +4,10 @@ import { VisualDataEditorView } from '../../visualDataEditor/presentation/Visual
 import { ClientVisualBuilderView } from '../../clientVisualBuilder/presentation/ClientVisualBuilderView';
 import { AWSView } from '../../aws/presentation/AWSView';
 import { AIView } from '../../ai/presentation/AIView';
+import { APIManagerView } from '../../apiManager/presentation/APIManagerView';
 
 export function App() {
-  const [currentView, setCurrentView] = useState<'home' | 'visualDataEditor' | 'clientVisualBuilder' | 'aws' | 'ai'>('home');
+  const [currentView, setCurrentView] = useState<'home' | 'visualDataEditor' | 'clientVisualBuilder' | 'aws' | 'ai' | 'apiManager'>('home');
 
   return (
     <div className="min-h-screen flex flex-col bg-gray-50">
@@ -32,6 +33,12 @@ export function App() {
             Visual Builder
           </button>
           <button
+            onClick={() => setCurrentView('apiManager')}
+            className={`font-medium ${currentView === 'apiManager' ? 'text-white border-b-2 border-white' : 'text-blue-200 hover:text-white'}`}
+          >
+            API Manager
+          </button>
+          <button
             onClick={() => setCurrentView('aws')}
             className={`font-medium ${currentView === 'aws' ? 'text-white border-b-2 border-white' : 'text-blue-200 hover:text-white'}`}
           >
@@ -49,6 +56,7 @@ export function App() {
         {currentView === 'home' && <HomeView />}
         {currentView === 'visualDataEditor' && <VisualDataEditorView />}
         {currentView === 'clientVisualBuilder' && <ClientVisualBuilderView />}
+        {currentView === 'apiManager' && <APIManagerView />}
         {currentView === 'aws' && <AWSView />}
         {currentView === 'ai' && <AIView />}
       </main>

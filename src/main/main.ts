@@ -277,6 +277,36 @@ app.whenReady().then(() => {
     return aiService.prompt(profileId, model, input);
   });
 
+  ipcMain.handle('api-manager:request', async (_event, options: { url: string, method: string, headers?: Record<string, string>, body?: string }) => {
+    try {
+      const response = await fetch(options.url, {
+        method: options.method,
+        headers: options.headers,
+        body: options.method !== 'GET' && options.method !== 'HEAD' ? options.body : undefined,
+      });
+
+      const body = await response.text();
+      const headers: Record<string, string> = {};
+      response.headers.forEach((value, key) => {
+        headers[key] = value;
+      });
+
+      return {
+        status: response.status,
+        statusText: response.statusText,
+        body,
+        headers,
+      };
+    } catch (error: any) {
+      return {
+        status: 0,
+        statusText: error.message || 'Request failed',
+        body: '',
+        headers: {},
+      };
+    }
+  });
+
   async function readAWSConfiguration() {
     const awsPath = path.join(os.homedir(), '.aws', 'credentials');
     const configPath = path.join(os.homedir(), '.aws', 'config');
