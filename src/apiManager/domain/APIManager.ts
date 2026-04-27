@@ -11,6 +11,7 @@ export enum HTTPMethod {
 export enum ArgumentType {
   URL = 'url',
   BODY = 'body',
+  BODY_JSON_PROPERTY = 'body_json_property',
   HEADER = 'header'
 }
 
@@ -57,4 +58,24 @@ export interface RequestResult {
   statusText: string;
   body: string;
   headers: Record<string, string>;
+  request?: {
+    url: string;
+    method: string;
+    headers: Record<string, string>;
+    body?: string;
+  };
+  error?: string;
+}
+
+export interface HistoryEntry {
+  id: string;
+  timestamp: number;
+  envName: string;
+  serviceName: string;
+  actionName: string;
+  method: string;
+  url: string;
+  status: number;
+  statusText: string;
+  arguments: Record<string, string>;
 }

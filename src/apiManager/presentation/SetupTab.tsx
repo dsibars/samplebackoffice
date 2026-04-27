@@ -17,8 +17,35 @@ interface SetupTabProps {
 
 export const SetupTab: React.FC<SetupTabProps> = ({ config, onSave }) => {
   const [localConfig, setLocalConfig] = useState<APIManagerConfig>(config);
+  const [errors, setErrors] = useState<string[]>([]);
+
+  const validate = (): string[] => {
+    const errs: string[] = [];
+    localConfig.services.forEach(service => {
+      service.collections.forEach(collection => {
+        collection.actions.forEach(action => {
+          const bodyArgs = action.arguments.filter(a => a.type === ArgumentType.BODY);
+          const bodyJsonPropertyArgs = action.arguments.filter(a => a.type === ArgumentType.BODY_JSON_PROPERTY);
+
+          if (bodyArgs.length > 1) {
+            errs.push(`Action "${action.name}" in service "${service.name}" has more than one "body" argument.`);
+          }
+          if (bodyArgs.length > 0 && bodyJsonPropertyArgs.length > 0) {
+            errs.push(`Action "${action.name}" in service "${service.name}" mix "body" and "body_json_property" arguments.`);
+          }
+        });
+      });
+    });
+    return errs;
+  };
 
   const handleSave = () => {
+    const validationErrors = validate();
+    if (validationErrors.length > 0) {
+      setErrors(validationErrors);
+      return;
+    }
+    setErrors([]);
     onSave(localConfig);
     alert('Configuration saved!');
   };
@@ -258,6 +285,23 @@ export const SetupTab: React.FC<SetupTabProps> = ({ config, onSave }) => {
           Save All Changes
         </button>
       </div>
+
+      {errors.length > 0 && (
+        <div className="bg-red-50 border-l-4 border-red-500 p-4">
+          <div className="flex">
+            <div className="ml-3">
+              <h3 className="text-sm font-medium text-red-800">Validation errors found:</h3>
+              <div className="mt-2 text-sm text-red-700">
+                <ul className="list-disc pl-5 space-y-1">
+                  {errors.map((err, idx) => (
+                    <li key={idx}>{err}</li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       <section className="bg-white p-6 rounded-lg border border-gray-200 shadow-sm">
         <div className="flex justify-between items-center mb-4">
