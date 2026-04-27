@@ -3,6 +3,7 @@ import { APIManagerService } from '../application/APIManagerService';
 import { LocalStorageAPIManagerStore } from '../infrastructure/LocalStorageAPIManagerStore';
 import { SetupTab } from './SetupTab';
 import { UseTab } from './UseTab';
+import { HistoryTab } from './HistoryTab';
 import { APIManagerConfig } from '../domain/APIManager';
 
 export const APIManagerView: React.FC = () => {
@@ -10,7 +11,7 @@ export const APIManagerView: React.FC = () => {
   const service = useMemo(() => new APIManagerService(store), [store]);
 
   const [config, setConfig] = useState<APIManagerConfig>(service.getConfig());
-  const [activeTab, setActiveTab] = useState<'use' | 'setup'>('use');
+  const [activeTab, setActiveTab] = useState<'use' | 'setup' | 'history'>('use');
 
   const handleSave = (newConfig: APIManagerConfig) => {
     service.saveConfig(newConfig);
@@ -93,14 +94,22 @@ export const APIManagerView: React.FC = () => {
         >
           Setup
         </button>
+        <button
+          onClick={() => setActiveTab('history')}
+          className={`px-4 py-2 text-sm font-medium rounded-t-lg transition-colors ${
+            activeTab === 'history'
+              ? 'bg-white border-x border-t -mb-px text-blue-600 border-gray-200'
+              : 'text-gray-500 hover:text-gray-700'
+          }`}
+        >
+          History
+        </button>
       </div>
 
       <div className="mt-4">
-        {activeTab === 'setup' ? (
-          <SetupTab config={config} onSave={handleSave} />
-        ) : (
-          <UseTab config={config} service={service} />
-        )}
+        {activeTab === 'setup' && <SetupTab config={config} onSave={handleSave} />}
+        {activeTab === 'use' && <UseTab config={config} service={service} />}
+        {activeTab === 'history' && <HistoryTab service={service} />}
       </div>
     </div>
   );

@@ -24,18 +24,52 @@ export const UseTab: React.FC<UseTabProps> = ({ config, service }) => {
 
   const [argValues, setArgValues] = useState<Record<string, string>>({});
   const [result, setResult] = useState<RequestResult | null>(null);
+  const [resultsCache, setResultsCache] = useState<Record<string, RequestResult>>({});
   const [loading, setLoading] = useState(false);
+  const [showDetails, setShowDetails] = useState(false);
 
   useEffect(() => {
+    if (selectedAction) {
+      const savedArgs = localStorage.getItem(`api-manager-args-${selectedAction.action.id}`);
+      if (savedArgs) {
+        setArgValues(JSON.parse(savedArgs));
+      } else {
+        const initialArgs: Record<string, string> = {};
+        selectedAction.action.arguments.forEach(arg => {
+          initialArgs[arg.name] = '';
+        });
+        setArgValues(initialArgs);
+      }
+      setResult(resultsCache[selectedAction.action.id] || null);
+      setShowDetails(false);
+    }
+  }, [selectedAction, resultsCache]);
+
+  const handleArgChange = (name: string, value: string) => {
+    const newArgs = { ...argValues, [name]: value };
+    setArgValues(newArgs);
+    if (selectedAction) {
+      localStorage.setItem(`api-manager-args-${selectedAction.action.id}`, JSON.stringify(newArgs));
+    }
+  };
+
+  const handleClear = () => {
     if (selectedAction) {
       const initialArgs: Record<string, string> = {};
       selectedAction.action.arguments.forEach(arg => {
         initialArgs[arg.name] = '';
       });
       setArgValues(initialArgs);
+      localStorage.removeItem(`api-manager-args-${selectedAction.action.id}`);
       setResult(null);
+      setResultsCache(prev => {
+        const newCache = { ...prev };
+        delete newCache[selectedAction.action.id];
+        return newCache;
+      });
+      setShowDetails(false);
     }
-  }, [selectedAction]);
+  };
 
   const handleExecute = async () => {
     if (!selectedEnv || !selectedAction) return;
@@ -50,6 +84,7 @@ export const UseTab: React.FC<UseTabProps> = ({ config, service }) => {
         argValues
       );
       setResult(res);
+      setResultsCache(prev => ({ ...prev, [selectedAction.action.id]: res }));
     } catch (e: any) {
       setResult({
         status: 0,
@@ -126,13 +161,21 @@ export const UseTab: React.FC<UseTabProps> = ({ config, service }) => {
                     {selectedEnv?.baseUrl}/{selectedAction.service.path}/{selectedAction.collection.path ? selectedAction.collection.path + '/' : ''}{selectedAction.action.path}
                   </div>
                 </div>
-                <button
-                  onClick={handleExecute}
-                  disabled={loading}
-                  className={`bg-blue-600 text-white px-6 py-2 rounded font-bold shadow hover:bg-blue-700 transition-colors ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
-                >
-                  {loading ? 'Sending...' : 'Send Request'}
-                </button>
+                <div className="flex space-x-2">
+                  <button
+                    onClick={handleClear}
+                    className="border border-gray-300 text-gray-600 px-4 py-2 rounded font-bold hover:bg-gray-50 transition-colors"
+                  >
+                    Clear
+                  </button>
+                  <button
+                    onClick={handleExecute}
+                    disabled={loading}
+                    className={`bg-blue-600 text-white px-6 py-2 rounded font-bold shadow hover:bg-blue-700 transition-colors ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
+                  >
+                    {loading ? 'Sending...' : 'Send Request'}
+                  </button>
+                </div>
               </div>
 
               {selectedAction.action.arguments.length > 0 && (
@@ -140,24 +183,24 @@ export const UseTab: React.FC<UseTabProps> = ({ config, service }) => {
                   <h4 className="text-sm font-bold text-gray-700 uppercase border-b pb-1">Arguments</h4>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {selectedAction.action.arguments.map((arg, idx) => (
-                      <div key={idx}>
+                      <div key={idx} className={arg.type === 'body' ? 'md:col-span-2' : ''}>
                         <label className="block text-xs font-medium text-gray-500 mb-1">
                           {arg.name} <span className="text-[10px] text-gray-400">({arg.type})</span>
-                          {arg.type === 'body' ? (
-                            <textarea
-                              value={argValues[arg.name] || ''}
-                              onChange={(e) => setArgValues({ ...argValues, [arg.name]: e.target.value })}
-                              className="w-full border rounded px-3 py-2 text-sm font-mono h-20 font-normal"
-                            />
-                          ) : (
-                            <input
-                              type="text"
-                              value={argValues[arg.name] || ''}
-                              onChange={(e) => setArgValues({ ...argValues, [arg.name]: e.target.value })}
-                              className="w-full border rounded px-3 py-2 text-sm font-normal"
-                            />
-                          )}
                         </label>
+                        {arg.type === 'body' ? (
+                          <textarea
+                            value={argValues[arg.name] || ''}
+                            onChange={(e) => handleArgChange(arg.name, e.target.value)}
+                            className="w-full border rounded px-3 py-2 text-sm font-mono h-32 font-normal"
+                          />
+                        ) : (
+                          <input
+                            type="text"
+                            value={argValues[arg.name] || ''}
+                            onChange={(e) => handleArgChange(arg.name, e.target.value)}
+                            className="w-full border rounded px-3 py-2 text-sm font-normal"
+                          />
+                        )}
                       </div>
                     ))}
                   </div>
@@ -168,7 +211,17 @@ export const UseTab: React.FC<UseTabProps> = ({ config, service }) => {
             {/* Response Section */}
             <div className="flex-1 bg-gray-900 text-gray-100 flex flex-col overflow-hidden">
               <div className="px-4 py-2 bg-gray-800 border-b border-gray-700 flex justify-between items-center">
-                <span className="text-xs font-bold uppercase text-gray-400 tracking-wider">Response</span>
+                <div className="flex items-center space-x-4">
+                  <span className="text-xs font-bold uppercase text-gray-400 tracking-wider">Response</span>
+                  {result && (
+                    <button
+                      onClick={() => setShowDetails(!showDetails)}
+                      className="text-[10px] text-blue-400 hover:text-blue-300 font-bold uppercase"
+                    >
+                      {showDetails ? 'Hide Details' : 'Show Details'}
+                    </button>
+                  )}
+                </div>
                 {result && (
                   <div className="flex space-x-4 text-xs">
                     <span className={result.status >= 200 && result.status < 300 ? 'text-green-400' : 'text-red-400'}>
@@ -177,17 +230,53 @@ export const UseTab: React.FC<UseTabProps> = ({ config, service }) => {
                   </div>
                 )}
               </div>
-              <div className="flex-1 overflow-auto p-4 font-mono text-sm">
+
+              <div className="flex-1 overflow-auto font-mono text-sm">
                 {result ? (
-                  <pre className="whitespace-pre-wrap">
-                    {(() => {
-                      try {
-                        return JSON.stringify(JSON.parse(result.body), null, 2);
-                      } catch {
-                        return result.body;
-                      }
-                    })()}
-                  </pre>
+                  <div className="p-4">
+                    {showDetails && (
+                      <div className="mb-6 space-y-4 text-xs border-b border-gray-700 pb-6">
+                        <div>
+                          <div className="text-gray-500 font-bold uppercase mb-1">Request URL</div>
+                          <div className="text-blue-300 break-all">{result.request?.url}</div>
+                        </div>
+                        <div>
+                          <div className="text-gray-500 font-bold uppercase mb-1">Request Method</div>
+                          <div className="text-blue-300">{result.request?.method}</div>
+                        </div>
+                        <div>
+                          <div className="text-gray-500 font-bold uppercase mb-1">Request Headers</div>
+                          <pre className="text-gray-300">{JSON.stringify(result.request?.headers, null, 2)}</pre>
+                        </div>
+                        {result.request?.body && (
+                          <div>
+                            <div className="text-gray-500 font-bold uppercase mb-1">Request Body</div>
+                            <pre className="text-gray-300 whitespace-pre-wrap">{result.request.body}</pre>
+                          </div>
+                        )}
+                        {result.error && (
+                          <div>
+                            <div className="text-red-400 font-bold uppercase mb-1">Error Details</div>
+                            <pre className="text-red-300 whitespace-pre-wrap">{result.error}</pre>
+                          </div>
+                        )}
+                        <div>
+                          <div className="text-gray-500 font-bold uppercase mb-1">Response Headers</div>
+                          <pre className="text-gray-300">{JSON.stringify(result.headers, null, 2)}</pre>
+                        </div>
+                      </div>
+                    )}
+                    <div className="text-gray-500 font-bold uppercase mb-2 text-xs">Response Body</div>
+                    <pre className="whitespace-pre-wrap">
+                      {(() => {
+                        try {
+                          return JSON.stringify(JSON.parse(result.body), null, 2);
+                        } catch {
+                          return result.body;
+                        }
+                      })()}
+                    </pre>
+                  </div>
                 ) : (
                   <div className="h-full flex items-center justify-center text-gray-500 italic">
                     {loading ? 'Executing request...' : 'Ready to send request'}

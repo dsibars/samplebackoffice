@@ -5,7 +5,8 @@ import {
   Environment,
   RequestResult,
   Service,
-  Collection
+  Collection,
+  HistoryEntry
 } from '../domain/APIManager';
 import { LocalStorageAPIManagerStore } from '../infrastructure/LocalStorageAPIManagerStore';
 
@@ -34,6 +35,7 @@ export class APIManagerService {
     let url = this.buildUrl(environment, service, collection, action, args);
     const method = action.method;
     const headers: Record<string, string> = {};
+    let body: string | undefined = undefined;
     const bodyObj: Record<string, any> = {};
 
     action.arguments.forEach(arg => {
@@ -41,22 +43,32 @@ export class APIManagerService {
       if (arg.type === ArgumentType.HEADER) {
         headers[arg.name] = value;
       } else if (arg.type === ArgumentType.BODY) {
+        body = value;
+      } else if (arg.type === ArgumentType.BODY_JSON_PROPERTY) {
         bodyObj[arg.name] = value;
       }
     });
 
-    const body = Object.keys(bodyObj).length > 0 ? JSON.stringify(bodyObj) : undefined;
-    if (body) {
+    if (Object.keys(bodyObj).length > 0) {
+      body = JSON.stringify(bodyObj);
       headers['Content-Type'] = 'application/json';
     }
 
+    const requestDetails = { url, method, headers, body };
+    let result: RequestResult;
+
     if (window.electronAPI) {
-      return await window.electronAPI.apiManager.request({
-        url,
-        method,
-        headers,
-        body
-      });
+      try {
+        result = await window.electronAPI.apiManager.request(requestDetails);
+      } catch (e: any) {
+        result = {
+          status: 0,
+          statusText: 'Error',
+          body: '',
+          headers: {},
+          error: e.toString()
+        };
+      }
     } else {
       // Fallback for web environment (might hit CORS)
       try {
@@ -69,21 +81,64 @@ export class APIManagerService {
         const responseHeaders: Record<string, string> = {};
         response.headers.forEach((v, k) => { responseHeaders[k] = v; });
 
-        return {
+        result = {
           status: response.status,
           statusText: response.statusText,
           body: responseBody,
           headers: responseHeaders
         };
       } catch (e: any) {
-        return {
+        result = {
           status: 0,
-          statusText: e.message || 'Network Error',
+          statusText: 'Network Error',
           body: '',
-          headers: {}
+          headers: {},
+          error: e.toString()
         };
       }
     }
+
+    result.request = requestDetails;
+    this.addToHistory(environment, service, action, args, result);
+    return result;
+  }
+
+  private addToHistory(
+    environment: Environment,
+    service: Service,
+    action: Action,
+    args: Record<string, string>,
+    result: RequestResult
+  ): void {
+    const history = this.getHistory();
+    const entry: HistoryEntry = {
+      id: crypto.randomUUID(),
+      timestamp: Date.now(),
+      envName: environment.name,
+      serviceName: service.name,
+      actionName: action.name,
+      method: action.method,
+      url: result.request?.url || '',
+      status: result.status,
+      statusText: result.statusText,
+      arguments: { ...args }
+    };
+    history.unshift(entry);
+    localStorage.setItem('api-manager-history', JSON.stringify(history.slice(0, 100))); // Keep last 100
+  }
+
+  getHistory(): HistoryEntry[] {
+    const historyStr = localStorage.getItem('api-manager-history');
+    if (!historyStr) return [];
+    try {
+      return JSON.parse(historyStr);
+    } catch {
+      return [];
+    }
+  }
+
+  clearHistory(): void {
+    localStorage.removeItem('api-manager-history');
   }
 
   private buildUrl(
